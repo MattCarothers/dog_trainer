@@ -24,7 +24,7 @@ table_schema() ->
     <<"zone">> => [<<"name">>]
    }.
 
--spec setup_rethinkdb(Hostname :: string(), Port :: integer(), Username :: string(), Password :: string()) -> {ok, map()}.
+-spec setup_rethinkdb(Hostname :: string(), Port :: integer(), Username :: string(), Password :: string()) -> ok.
 setup_rethinkdb(Hostname,Port,Username,Password) ->
   Connection = get_connection(Hostname,Port,Username,Password),
   ensure_db_exists(Connection,?DB_NAME),
@@ -34,7 +34,8 @@ setup_rethinkdb(Hostname,Port,Username,Password) ->
                              {FieldName,ensure_index_exists(Connection,?DB_NAME,TableName,FieldName)}
                          end, FieldsList))
            end, table_schema()),
-  create_initial_global_hash(Connection).
+  ensure_global_ipset_hash_exists(Connection),
+  ok.
 
 -spec get_connection(Hostname :: string(),Port :: integer(), Username :: string(),Password :: string()) -> pid().
 get_connection(Hostname,Port,Username,Password) ->
@@ -110,22 +111,41 @@ ensure_index_exists(Connection,DatabaseName,TableName,FieldName) ->
 
 -spec create_index(Connection :: pid(), TableName :: string(), FieldName :: string() ) -> {ok, map()}.
 create_index(Connection,TableName,FieldName) ->
-  gen_rethink:run(Connection,
+  {ok,_Map} = gen_rethink:run(Connection,
                                fun(X) ->
                                    reql:db(X, dog),
                                    reql:table(X, TableName),
                                    reql:index_create(X, FieldName)
                                end).
 
--spec create_initial_global_hash(Connection :: pid()) -> {ok, map()}.
-create_initial_global_hash(Connection) ->
-  Record = #{
-    <<"hash">> => <<"initial">>,
-    <<"name">> => <<"global">>
-   }, 
-  gen_rethink:run(Connection,
+-spec ensure_global_ipset_hash_exists(Connection :: pid()) -> ok | change.
+ensure_global_ipset_hash_exists(Connection) ->
+  {ok, R} = gen_rethink:run(Connection,
                                fun(X) ->
                                    reql:db(X, dog),
                                    reql:table(X, <<"ipset">>),
-                                   reql:insert(X, Record)
+                                   reql:get_all(X, <<"global">>, #{index => <<"name">>})
+                               end),
+  {ok, R2} = rethink_cursor:all(R),
+  Hashes = lists:flatten(R2),
+  case length(Hashes) > 0 of
+    true ->
+      io:format("ok: Global hash already exists: ~p~n",[Hashes]),
+      ok;
+    false ->
+      io:format("change: Creating global ipset hash: ~n"),
+      create_global_ipset_hash(Connection),
+      change
+  end.
+
+create_global_ipset_hash(Connection) ->
+  InitialIpsetHash = #{
+            <<"hash">> => <<"a5ee32fdd31f9e7e834582371d0ed4166b9e31781ff8ae27d622bab3f641e9f7">> ,
+    <<"name">> => <<"global">>
+   }, 
+  {ok,_Map} = gen_rethink:run(Connection,
+                               fun(X) ->
+                                   reql:db(X, dog),
+                                   reql:table(X, <<"ipset">>),
+                                   reql:insert(X, InitialIpsetHash)
                                end).
