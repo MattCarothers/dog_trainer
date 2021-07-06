@@ -39,7 +39,7 @@ subscriber_callback(_DeliveryTag, _RoutingKey, Payload) ->
       Hostname = maps:get(<<"name">>,Config),
       Hostkey = maps:get(<<"hostkey">>,Config),
       lager:info("Hostname: ~p",[Hostname]),
-      dog_config:update_host_keepalive(Hostname),
+      dog_config:update_host_keepalive(Hostkey),
       case dog_host:get_by_hostkey(Hostkey) of
           {ok, Host} -> 
               HostId = maps:get(<<"id">>, Host),
