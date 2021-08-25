@@ -5,6 +5,8 @@
 
 -module(dog_rethink_sup).
 
+-include("dog_trainer.hrl").
+
 -behaviour(supervisor).
 
 %% API
@@ -31,9 +33,9 @@ init([]) ->
     RethinkdbUser = application:get_env(dog_trainer, rethinkdb_username,"admin"),
     RethinkdbPassword = application:get_env(dog_trainer, rethinkdb_password,""),
     RethinkTimeoutMs = application:get_env(dog_trainer, rethink_timeout_ms,1000),
-    %lager:error("RethinkdbHost: ~p,RethinkdbPort: ~p,RethinkdbUser: ~p,RethinkdbPassword: ~p",[RethinkdbHost,RethinkdbPort,RethinkdbUser,RethinkdbPassword]),
+    %?LOG_ERROR("RethinkdbHost: ~p,RethinkdbPort: ~p,RethinkdbUser: ~p,RethinkdbPassword: ~p",[RethinkdbHost,RethinkdbPort,RethinkdbUser,RethinkdbPassword]),
     DbSetupResult = rethink_db_setup:setup_rethinkdb(RethinkdbHost,RethinkdbPort,RethinkdbUser,RethinkdbPassword),
-    lager:info("RethinkDB setup: ~p~n",[DbSetupResult]),
+    ?LOG_INFO("RethinkDB setup: ~p~n",[DbSetupResult]),
     ConnectOptions = #{host => RethinkdbHost,
                        port => RethinkdbPort,
                        timeout => RethinkTimeoutMs,

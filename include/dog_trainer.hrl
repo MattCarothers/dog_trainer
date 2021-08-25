@@ -1,3 +1,5 @@
+-include_lib("kernel/include/logger.hrl").
+
 -define(ROOT, "/api").
 
 -define(IpsExchange, <<"ips">>).

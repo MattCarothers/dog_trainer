@@ -78,12 +78,12 @@ unsubscribe_to_queue(Name) ->
 subscriber_callback(_DeliveryTag, _RoutingKey, Payload) ->
     Proplist = binary_to_term(Payload),
     UserData = proplists:get_value(user_data, Proplist),
-    lager:debug("UserData: ~p",[UserData]),
+    ?LOG_DEBUG("UserData: ~p",[UserData]),
     ExternalEnv = jsn:as_map(jsx:decode(maps:get(ipsets, UserData))),
-    lager:debug("ExternalEnv: ~p",[ExternalEnv]),
+    ?LOG_DEBUG("ExternalEnv: ~p",[ExternalEnv]),
     imetrics:add(external_ipset_update),
     ExternalEnvName = maps:get(<<"name">>,ExternalEnv),
-    lager:info("external ipsets receieved: ~p",[ExternalEnvName]),
+    ?LOG_INFO("external ipsets receieved: ~p",[ExternalEnvName]),
     {ok,ExistingExternal} = dog_external:get_by_name(ExternalEnvName),
     ExistingExternalId = maps:get(<<"id">>,ExistingExternal),
     dog_external:replace(ExistingExternalId,ExternalEnv), %TODO: create on link creation, set empty, inactive
@@ -98,12 +98,12 @@ delete_queue(#{broker := Broker, name := Name,
     Op = {'queue.delete',
       [{queue, QueueName},
        {auto_delete, true}, {durable, true}]},
-    lager:debug("Deleting queue: ~p", [Name]),
+    ?LOG_DEBUG("Deleting queue: ~p", [Name]),
     case dog_thumper_sup:amqp_op(Broker, Name, [Op]) of
       ok -> 
         ok;
       {error, Reason} -> 
-        lager:error("Reason: ~p", [Reason]), 
+        ?LOG_ERROR("Reason: ~p", [Reason]), 
         error
     end.
 
@@ -114,14 +114,14 @@ create_queue(#{broker := Broker, name := Name,
     Op = {'queue.declare',
       [{queue, QueueName},
        {auto_delete, true}, {durable, true}]},
-    lager:debug("Creating queue: ~p", [Name]),
+    ?LOG_DEBUG("Creating queue: ~p", [Name]),
     Response = dog_thumper_sup:amqp_op(Broker, Name, [Op]),
-    lager:info("Response: ~p", [Response]),
+    ?LOG_INFO("Response: ~p", [Response]),
     case Response of
       ok -> 
         ok;
       Error -> 
-        lager:error("Error: ~p", [Error]), Error
+        ?LOG_ERROR("Error: ~p", [Error]), Error
     end.
 
 -spec bind_queue(QueueDefintion :: map()) -> ok | {error, Reason :: iolist()}.
@@ -130,12 +130,12 @@ bind_queue(#{broker := Broker, name := ConsumerName, queue := QueueName, routing
     Op = {'queue.bind',
       [{queue, QueueName},
        {exchange, ExchangeName}, {routing_key, RoutingKey} ]},
-    lager:debug("Binding queue: ~p to: ~p", [ConsumerName,ExchangeName]),
+    ?LOG_DEBUG("Binding queue: ~p to: ~p", [ConsumerName,ExchangeName]),
     case dog_thumper_sup:amqp_op(Broker, ConsumerName, [Op]) of
       ok -> 
-        lager:debug("ok");
+        ?LOG_DEBUG("ok");
       {error, Reason} -> 
-        lager:debug("Reason: ~p", [Reason]),
+        ?LOG_DEBUG("Reason: ~p", [Reason]),
         {error, Reason}
     end.
 
@@ -145,13 +145,13 @@ unbind_queue(#{broker := Broker, name := ConsumerName, queue := QueueName, routi
     Op = {'queue.unbind',
       [{queue, QueueName},
        {exchange, ExchangeName}, {routing_key, RoutingKey} ]},
-    lager:debug("Unbinding queue: ~p to: ~p", [ConsumerName,ExchangeName]),
+    ?LOG_DEBUG("Unbinding queue: ~p to: ~p", [ConsumerName,ExchangeName]),
     case dog_thumper_sup:amqp_op(Broker, ConsumerName, [Op])
     of
       ok -> 
-        lager:debug("ok");
+        ?LOG_DEBUG("ok");
       {error, Reason} -> 
-        lager:debug("Reason: ~p", [Reason]),
+        ?LOG_DEBUG("Reason: ~p", [Reason]),
         {error, Reason}
     end.
 
@@ -161,13 +161,13 @@ unbind_exchange(#{broker := Broker, name := ConsumerName, queue := QueueName, ro
     Op = {'exchange.unbind',
       [{queue, QueueName},
        {exchange, ExchangeName}, {routing_key, RoutingKey} ]},
-    lager:debug("Unbinding queue: ~p to: ~p", [ConsumerName,ExchangeName]),
+    ?LOG_DEBUG("Unbinding queue: ~p to: ~p", [ConsumerName,ExchangeName]),
     case dog_thumper_sup:amqp_op(Broker, ConsumerName, [Op])
     of
       ok -> 
-        lager:debug("ok");
+        ?LOG_DEBUG("ok");
       {error, Reason} -> 
-        lager:debug("Reason: ~p", [Reason]),
+        ?LOG_DEBUG("Reason: ~p", [Reason]),
         {error, Reason}
     end.
 
@@ -197,7 +197,7 @@ set_link_state(
                             old_enabled_state := EnabledState,
                             old_direction_state := DirectionState}
                 ) ->
-  lager:info("New link state: EnvName: ~p, EnabledState: ~p, NewEnabledState: ~p, DirectionState: ~p, NewDirectionState: ~p",
+  ?LOG_INFO("New link state: EnvName: ~p, EnabledState: ~p, NewEnabledState: ~p, DirectionState: ~p, NewDirectionState: ~p",
              [EnvName,EnabledState,NewEnabledState,DirectionState,NewDirectionState]),
   InboundQueueSpec = inbound_queue_spec(EnvName),
   OutboundQueueSpec = outbound_queue_spec(EnvName),
@@ -315,7 +315,7 @@ create_active_outbound_queue(QueueSpec) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 init([Link]) ->
-  lager:debug("init"),
+  ?LOG_DEBUG("init"),
   State = #{env_name => maps:get(<<"name">>,Link),
                             new_enabled_state => maps:get(<<"enabled">>,Link),
                             new_direction_state => maps:get(<<"direction">>,Link),
@@ -332,17 +332,17 @@ handle_call(_Request, _From, State) ->
 handle_cast(stop, State) ->
   {stop, normal, State};
 handle_cast(Msg, State) ->
-  lager:error("unknown_message: Msg: ~p, State: ~p",[Msg, State]),
+  ?LOG_ERROR("unknown_message: Msg: ~p, State: ~p",[Msg, State]),
   {noreply, State}.
 
 -spec handle_info(_,_) -> {'noreply',_}.
 handle_info(Info, State) ->
-  lager:error("unknown_message: Info: ~p, State: ~p",[Info, State]),
+  ?LOG_ERROR("unknown_message: Info: ~p, State: ~p",[Info, State]),
   {noreply, State}.
 
 -spec terminate(_, ips_state()) -> {close}.
 terminate(Reason, State) ->
-  lager:info("terminate: Reason: ~p, State: ~p", [Reason, State]),
+  ?LOG_INFO("terminate: Reason: ~p, State: ~p", [Reason, State]),
   {close}.
 
 -spec code_change(_, State::ips_state(), _) -> {ok, State::ips_state()}.

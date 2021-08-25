@@ -48,7 +48,7 @@ state(Ref) ->
     gen_requery:call(Ref, state, infinity).
 
 init([]) ->
-    lager:info("init"),
+    ?LOG_INFO("init"),
     % The ConnectOptions are provided to gen_rethink:connect_unlinked
     RethinkdbHost = application:get_env(dog_trainer, rethinkdb_host,"localhost"),
     RethinkdbPort = application:get_env(dog_trainer, rethinkdb_port,28015),
@@ -70,8 +70,8 @@ init([]) ->
 %% the managed connection is newly established
 handle_connection_up(Connection, State) ->
     {ok,RethinkSquashSec} = application:get_env(dog_trainer,rethink_squash_sec),
-    lager:info("handle_connection_up"),
-    lager:info("Connection: ~p", [Connection]),
+    ?LOG_INFO("handle_connection_up"),
+    ?LOG_INFO("Connection: ~p", [Connection]),
     Reql = reql:db(<<"dog">>),
     reql:table(Reql, <<"group">>),
     %reql:get_field(Reql, <<"profile">>),
@@ -84,11 +84,11 @@ handle_connection_up(Connection, State) ->
 %% reconnect state with exponential backoffs. Your module can still process
 %% requests during this time.
 handle_connection_down(State) ->
-    lager:info("handle_connection_down"),
+    ?LOG_INFO("handle_connection_down"),
     {noreply, State}.
 
 handle_query_result(Result, State) ->
-    lager:info("Result: ~p", [Result]),
+    ?LOG_INFO("Result: ~p", [Result]),
     case Result of
         [] ->
             pass;
@@ -102,7 +102,7 @@ handle_query_result(Result, State) ->
                 end,
                 imetrics:add_m(watcher,group_update),
                 GroupType = <<"role">>,
-                lager:info("calling update_group_iptables: ~p",[GroupName]),
+                ?LOG_INFO("calling update_group_iptables: ~p",[GroupName]),
                 dog_iptables:update_group_iptables(GroupName, GroupType),
                 {ok, R4IpsetsRuleset} = dog_ruleset:read_ruleset_set_v4_from_file(GroupName),
                 {ok, R6IpsetsRuleset} = dog_ruleset:read_ruleset_set_v6_from_file(GroupName),
@@ -127,15 +127,15 @@ handle_query_error(Error, State) ->
     {stop, Error, State}.
 
 handle_call(state, _From, State) ->
-    lager:debug("handle_call changefeed: ~p",[State]),
+    ?LOG_DEBUG("handle_call changefeed: ~p",[State]),
     {reply, State, State}.
 
 handle_cast(_Msg, State) ->
-    lager:debug("handle_cast changefeed: ~p",[State]),
+    ?LOG_DEBUG("handle_cast changefeed: ~p",[State]),
     {noreply, State}.
 
 handle_info(_Info, State) ->
-    lager:debug("handle_info changefeed: ~p",[State]),
+    ?LOG_DEBUG("handle_info changefeed: ~p",[State]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->

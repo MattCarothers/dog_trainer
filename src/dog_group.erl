@@ -148,13 +148,13 @@ role_groups_in_groups_profiles() ->
                                  Name = maps:get(<<"name">>,Group),
                                  {ok, Profile} = get_profile_by_name(Name),
                                  {Name, Profile} end, Groups),
-    lager:debug("Profiles: ~p",[Profiles]),
+    ?LOG_DEBUG("Profiles: ~p",[Profiles]),
     GroupNamesInGroups = lists:map(fun({Name, Profile}) ->
                                GroupIdsInProfile = dog_profile:get_role_groups_in_profile(Profile),
-                               %lager:info("GroupIdsInProfile: ~p",[GroupIdsInProfile]),
+                               %?LOG_INFO("GroupIdsInProfile: ~p",[GroupIdsInProfile]),
                                GroupNamesInProfile = [element(2,get_name_by_id(Id)) || Id <- GroupIdsInProfile],
                                {Name, GroupNamesInProfile} end, Profiles),
-    lager:debug("GroupNamesInGroups: ~p",[GroupNamesInGroups]),
+    ?LOG_DEBUG("GroupNamesInGroups: ~p",[GroupNamesInGroups]),
     maps:from_list(GroupNamesInGroups).
 
 inverse_map_of_lists(Map) ->
@@ -276,7 +276,7 @@ create(Group@0) when is_map(Group@0)->
             Group@2 = case maps:find(<<"profile_name">>,Group@1) of
                 error ->
                    NewMap = maps:merge(DefaultMap,Group@1),
-                   lager:info("NewMap: ~p",[NewMap]),
+                   ?LOG_INFO("NewMap: ~p",[NewMap]),
                    NewMap;
                 {ok, _ProfileName} ->
                     ProfileId = case maps:find(<<"profile_version">>,Group@1) of
@@ -295,7 +295,7 @@ create(Group@0) when is_map(Group@0)->
                     end,
                     
                     NewMap = maps:merge(DefaultMap,Group@1),
-                    lager:info("NewMap: ~p",[NewMap]),
+                    ?LOG_INFO("NewMap: ~p",[NewMap]),
                     maps:merge(NewMap,#{<<"profile_id">> => ProfileId})
             end,
             case dog_json_schema:validate(?VALIDATION_TYPE,Group@2) of
@@ -353,7 +353,7 @@ get_profile_by_id(GroupId) ->
     %{error,{runtime_error,_Error}} -> {error,notfound}
   catch
     Exception:Reason:Stacktrace -> 
-                        lager:info("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
+                        ?LOG_INFO("~p, ~p, ~p",[Exception, Reason, Stacktrace]),
                         {error,notfound}
   end.
 
@@ -492,7 +492,7 @@ set_hash6_iptables(GroupName, Hash) ->
 
 -spec set_hash(GroupName :: binary(), Hash :: binary(), Field :: binary()) -> {ok, any()}.
 set_hash(GroupName, Hash, Field) ->
-    lager:debug("GroupName: ~p, Hash: ~p",[GroupName,Hash]),
+    ?LOG_DEBUG("GroupName: ~p, Hash: ~p",[GroupName,Hash]),
     {ok, GroupId} = dog_group:get_id_by_name(GroupName),
     %{ok, RethinkTimeout} = application:get_env(dog_trainer,rethink_timeout_ms),
     %{ok, Connection} = gen_rethink_session:get_connection(dog_session),
@@ -526,7 +526,7 @@ get_by_name(GroupName) ->
             end),
             {ok, R3} = rethink_cursor:all(R),
             R4 = lists:flatten(R3),
-            %lager:info("R4: ~p",[R4]),
+            %?LOG_INFO("R4: ~p",[R4]),
             case R4 of
                [] ->
                    {error, notfound};
@@ -534,7 +534,7 @@ get_by_name(GroupName) ->
                    Result = hd(R4),
                    case Result of
                        {error, Error} ->
-                           lager:error("group name not found: ~p, ~p",[GroupName, Error]),
+                           ?LOG_ERROR("group name not found: ~p, ~p",[GroupName, Error]),
                            {error, Error};
                        GroupJson -> 
                            {ok, GroupJson}
@@ -593,7 +593,7 @@ replace(Id, ReplaceMap) ->
                                   reql:get(X, Id),
                                   reql:replace(X,NewItem3)
                               end),
-                    lager:debug("replaced R: ~p~n", [R]),
+                    ?LOG_DEBUG("replaced R: ~p~n", [R]),
                     Replaced = maps:get(<<"replaced">>, R),
                     Unchanged = maps:get(<<"unchanged">>, R),
                     case {Replaced,Unchanged} of
@@ -625,7 +625,7 @@ update(Id, UpdateMap) ->
                                   reql:get(X, Id),
                                   reql:update(X,UpdateMap)
                           end),
-                    lager:debug("update R: ~p~n", [R]),
+                    ?LOG_DEBUG("update R: ~p~n", [R]),
                     Replaced = maps:get(<<"replaced">>, R),
                     Unchanged = maps:get(<<"unchanged">>, R),
                     case {Replaced,Unchanged} of
@@ -652,14 +652,14 @@ delete(Id) ->
                                               reql:get(X, Id),
                                               reql:delete(X)
                                       end),
-            lager:debug("delete R: ~p~n",[R]),
+            ?LOG_DEBUG("delete R: ~p~n",[R]),
             Deleted = maps:get(<<"deleted">>, R),
             case Deleted of
                 1 -> ok;
                 _ -> {error,#{<<"error">> => <<"error">>}}
             end;
         {true,Profiles} ->
-            lager:info("group ~p not deleted, in profiles: ~p~n",[Id,Profiles]),
+            ?LOG_INFO("group ~p not deleted, in profiles: ~p~n",[Id,Profiles]),
             {error,#{<<"errors">> => #{<<"in active profile">> => Profiles}}}
      end.
 
@@ -795,7 +795,7 @@ get_hosts_by_id(GroupId) ->
         _ ->
             {ok, Group} = get_by_id(GroupId),
             GroupName = maps:get(<<"name">>, Group),
-            %lager:info("GroupName: ~p",[GroupName]),
+            %?LOG_INFO("GroupName: ~p",[GroupName]),
             %{ok, RethinkTimeout} = application:get_env(dog_trainer,rethink_timeout_ms),
             %{ok, Connection} = gen_rethink_session:get_connection(dog_session),
             {ok, R} = dog_rethink:run(
@@ -839,9 +839,9 @@ get_all_group_interfaces(OnlyActive) ->
                 end),
             {ok, Result} = rethink_cursor:all(R),
             Interfaces = lists:flatten(Result),
-            lager:debug("Interfaces: ~p",[Interfaces]),
+            ?LOG_DEBUG("Interfaces: ~p",[Interfaces]),
             Interfaces@1 = merge(Interfaces),
-            lager:debug("Interfaces@1: ~p",[Interfaces@1]),
+            ?LOG_DEBUG("Interfaces@1: ~p",[Interfaces@1]),
             case Interfaces@1 of
                 [] -> {ok, []};
                 _ -> {ok, Interfaces@1}
@@ -869,7 +869,7 @@ get_group_interfaces_by_name(GroupName) ->
     get_group_interfaces_by_name(GroupName, true).
 -spec get_group_interfaces_by_name(GroupName :: iolist(), OnlyActive :: boolean() ) -> {'ok',[any()]}.
 get_group_interfaces_by_name(GroupName, OnlyActive) ->
-    %lager:info("GroupName: ~p~n",[GroupName]),
+    %?LOG_INFO("GroupName: ~p~n",[GroupName]),
     case OnlyActive of
         true ->
             %{ok, RethinkTimeout} = application:get_env(dog_trainer,rethink_timeout_ms),
@@ -884,9 +884,9 @@ get_group_interfaces_by_name(GroupName, OnlyActive) ->
                 end),
             {ok, Result} = rethink_cursor:all(R),
             Interfaces = lists:flatten(Result),
-            %lager:debug("Interfaces: ~p",[Interfaces]),
+            %?LOG_DEBUG("Interfaces: ~p",[Interfaces]),
             Interfaces@1 = merge(Interfaces),
-            %lager:debug("Interfaces@1: ~p",[Interfaces@1]),
+            %?LOG_DEBUG("Interfaces@1: ~p",[Interfaces@1]),
             case Interfaces@1 of
                 [] -> {ok, []};
                 _ -> {ok, Interfaces@1}
@@ -1103,7 +1103,7 @@ replace_profile_by_profile_id(OldId, NewId) ->
 
 -spec replace_profile_by_profile_id(OldId :: binary(), NewId :: binary(), ProfileName :: iolist() ) ->  list().
 replace_profile_by_profile_id(OldId, NewId, ProfileName) ->
-    lager:debug("OldId: ~p, NewId: ~p, ProfileName: ~p", [OldId, NewId, ProfileName]),
+    ?LOG_DEBUG("OldId: ~p, NewId: ~p, ProfileName: ~p", [OldId, NewId, ProfileName]),
     GroupIds = get_ids_with_profile_id(OldId),
     Results = lists:map(fun(GroupId) ->
         update(GroupId, #{<<"profile_id">> => NewId, <<"profile_name">> => ProfileName}) end, GroupIds),

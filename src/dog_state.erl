@@ -227,7 +227,7 @@ to_map(State) ->
     }.
 
 from_map(StateMap) ->
-    lager:info("StateMap: ~p",[StateMap]),
+    ?LOG_INFO("StateMap: ~p",[StateMap]),
     #dog_state{
         name = maps:get(<<"name">>,StateMap), 
         interfaces = maps:get(<<"interfaces">>,StateMap), 

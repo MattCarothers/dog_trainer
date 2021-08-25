@@ -13,7 +13,7 @@
 
 -spec update_group_iptables(Group :: binary(), GroupType :: binary() ) -> 'ok'.
 update_group_iptables(GroupName, GroupType) ->
-    lager:info("GroupName: ~p",[GroupName]),
+    ?LOG_INFO("GroupName: ~p",[GroupName]),
     Groups = case application:get_env(dog_trainer,generate_unset_tables,true) of 
         true -> 
             {ok, GroupsList} = case GroupType of
@@ -26,14 +26,14 @@ update_group_iptables(GroupName, GroupType) ->
         false ->
             [GroupName]
     end,
-    lager:info("Effected Groups: ~p",[Groups]),
-    lager:info("add_to_queue: ~p",[Groups]),
+    ?LOG_INFO("Effected Groups: ~p",[Groups]),
+    ?LOG_INFO("add_to_queue: ~p",[Groups]),
     dog_profile_update_agent:add_to_queue(Groups),
     ok.
 
 -spec update_all_iptables() -> 'ok'.
 update_all_iptables() ->
-    lager:debug("update_all_iptables:start"),
+    ?LOG_DEBUG("update_all_iptables:start"),
     {ok, Groups} = dog_group:get_active_groups(),
     GroupNames = [ maps:get(<<"name">>,Group) || Group <- Groups],
     ChunkedGroupNames = chunk_list(GroupNames,2),
@@ -41,7 +41,7 @@ update_all_iptables() ->
         dog_profile_update_agent:add_to_queue(GroupName),
         timer:sleep(1000)
     end,ChunkedGroupNames),
-    lager:debug("update_all_iptables:end"),
+    ?LOG_DEBUG("update_all_iptables:end"),
     ok.
 
 chunk_list(List) ->
@@ -85,7 +85,7 @@ write_to_temp_file4(Ruleset) ->
 %    Result = os:cmd(Cmd),
 %    case Result of
 %        [] ->
-%           lager:info("iptables valid"), 
+%           ?LOG_INFO("iptables valid"), 
 %            ok;
 %        _ -> 
 %            error
@@ -97,7 +97,7 @@ backup_ruleset4() ->
     Result = os:cmd(Cmd),
     case Result of
         [] ->
-           lager:info("iptables backed up"), 
+           ?LOG_INFO("iptables backed up"), 
             ok;
         _ -> 
             error
@@ -108,7 +108,7 @@ update_iptables4(TempFile) ->
     ok = backup_ruleset4(),
     ok = delete_iptables_tempfile(TempFile),
     %TODO
-    lager:info("Iptables updated."),
+    ?LOG_INFO("Iptables updated."),
     ok.
 
 -spec valid_iptables() -> binary().
@@ -136,7 +136,7 @@ COMMIT
 
 -spec publish_to_queue(RoutingKey :: binary(), R4IpsetsRuleset :: list() | boolean(), R6IpsetsRuleset :: list() | boolean(), R4IptablesRuleset :: list() | boolean(), R6IptablesRuleset :: list() | boolean(), Ipsets :: list()) -> any().
 publish_to_queue(RoutingKey, R4IpsetsRuleset, R6IpsetsRuleset, R4IptablesRuleset, R6IptablesRuleset, Ipsets) ->
-    lager:info("RoutingKey: ~p",[RoutingKey]),
+    ?LOG_INFO("RoutingKey: ~p",[RoutingKey]),
     UserData = #{
       ruleset4_ipset => R4IpsetsRuleset,
       ruleset6_ipset => R6IpsetsRuleset,
