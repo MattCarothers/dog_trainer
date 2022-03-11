@@ -150,7 +150,8 @@ handle_query_result(Result, State) ->
                   dog_external:update_external_broker_definition(EnvName),
                   thumper:reconnect(EnvName);
                 {true,false} ->
-                  thumper:disconnect(EnvName);
+                  pass;
+                  %thumper:disconnect(EnvName);
                 {_,_} ->
                   dog_external:update_external_broker_definition(EnvName),
                   thumper:reconnect(EnvName)
