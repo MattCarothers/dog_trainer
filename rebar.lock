@@ -8,7 +8,7 @@
        {ref,"f78918e7b593fbdc35ec9bcc349aa50f47f45a8b"}},
   0},
  {<<"cache_tab">>,
-  {git,"git@github.com:relaypro-open/cache_tab.git",
+  {git,"https://github.com/relaypro-open/cache_tab.git",
        {ref,"47be88d6f69af6ce555e6615ca409e43def253d1"}},
   0},
  {<<"conv_case">>,{pkg,<<"conv_case">>,<<"0.2.2">>},1},
